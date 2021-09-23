@@ -3,7 +3,7 @@ from selenium import webdriver
 
 browser = webdriver.Chrome(executable_path=r'C:\Users\Patryk\Downloads\chromedriver_win32(1)\chromedriver.exe')
 browser.get('https://justjoin.it/warszawa/python/junior?tab=with-salary')
-sleep(10)
+sleep(3)
 browser.execute_script("document.body.style.zoom='50%'")
 resp = browser.page_source
 divided_by_pln = resp.split(' PLN')
