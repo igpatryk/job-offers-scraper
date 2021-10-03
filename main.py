@@ -73,4 +73,14 @@ def process_justjoinit_data():
 average_junior_python_dev_salary_on_justjoinit = process_justjoinit_data()  # I'm looking for a job in Warsaw or for
 # a remotely job so I won't check other categories on justjoin.it
 
-# Let's scrap other site - pracuj.pl! Coming soon...
+# Let's scrap other site - nofluffjobs.com/pl! Coming soon...
+
+
+def scrap_nofluffjobs(link):
+    browser = webdriver.Chrome()
+    browser.get(link)
+    sleep(5)
+    browser.execute_script("document.body.style.zoom='20%'")
+    sleep(5)
+    resp = browser.page_source
+    return resp
