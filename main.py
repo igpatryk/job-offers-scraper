@@ -14,8 +14,8 @@ def scrap_justjoinit(link):
     return useful_resp
 
 
-def get_average_salary_justjoinit(junior_python_dev_jobs_in_warsaw):
-    offers_divided_by_pln = junior_python_dev_jobs_in_warsaw.split(" PLN")
+def get_average_salary_justjoinit(offers):
+    offers_divided_by_pln = offers.split(" PLN")
     sum_of_salaries = 0
     counter_of_salaries = 0
     for element in offers_divided_by_pln:
@@ -32,10 +32,21 @@ def get_average_salary_justjoinit(junior_python_dev_jobs_in_warsaw):
             mean_of_actual_salaries = round(sum_of_actual_salaries / len(salary), 2)
             sum_of_salaries = sum_of_salaries + mean_of_actual_salaries
             counter_of_salaries = counter_of_salaries + 1
-    return round(sum_of_salaries / counter_of_salaries, 2)
+    return round(sum_of_salaries / counter_of_salaries, 2) * 1000
 
 
-junior_python_dev_jobs_in_warsaw = scrap_justjoinit('https://justjoin.it/warszawa/python/junior?tab=with-salary')
-average_junior_python_dev_in_warsaw_salary = get_average_salary_justjoinit(junior_python_dev_jobs_in_warsaw)*1000
-print("Today, the average salary of junior python developer in Warsaw is {}zł.".format(average_junior_python_dev_in_warsaw_salary))
-
+junior_python_dev_jobs_offers_in_warsaw = scrap_justjoinit('https://justjoin.it/warszawa/python/junior?tab=with-salary')
+average_junior_python_dev_in_warsaw_salary = get_average_salary_justjoinit(junior_python_dev_jobs_offers_in_warsaw)
+junior_python_dev_jobs_offers_remote_poland = scrap_justjoinit('https://justjoin.it/remote-poland/python/junior?tab=with-salary')
+average_junior_python_dev_remote_poland_salary = get_average_salary_justjoinit(
+    junior_python_dev_jobs_offers_remote_poland)
+if average_junior_python_dev_remote_poland_salary > average_junior_python_dev_in_warsaw_salary:
+    print("It is better to look for offers in category 'Remote Poland'! Average salary is {}zł more."
+          .format(average_junior_python_dev_remote_poland_salary-average_junior_python_dev_in_warsaw_salary))
+else:
+    print("It is better to look for offers based in Warsaw! Average salary is {}zł more. "
+          .format(average_junior_python_dev_in_warsaw_salary - average_junior_python_dev_remote_poland_salary))
+print("Today the average salary of junior python developer in Warsaw according to offers on justjoin.it is {}zł."
+      .format(average_junior_python_dev_in_warsaw_salary))
+print("Today the average salary of junior python developer working remotely in Poland according to offers on "
+      "justjoin.it is {}.zł".format(average_junior_python_dev_remote_poland_salary))
