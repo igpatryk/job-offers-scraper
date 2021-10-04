@@ -84,3 +84,5 @@ def scrap_nofluffjobs(link):
     sleep(5)
     resp = browser.page_source
     return resp
+
+# IDEA: GRAPHS.
