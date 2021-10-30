@@ -5,7 +5,12 @@ from selenium import webdriver
 # Let's scrap justjoin.it!
 
 def scrap_justjoinit(link):
-    browser = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    # options.add_argument('window-size=1200x600')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    browser = webdriver.Chrome(chrome_options=options)
     browser.get(link)
     sleep(5)
     browser.execute_script("document.body.style.zoom='20%'")
@@ -76,11 +81,11 @@ average_junior_python_dev_salary_on_justjoinit = process_justjoinit_data()  # I'
 # Let's scrap other site - nofluffjobs.com/pl! Coming soon...
 
 
-def scrap_nofluffjobs(link):
-    browser = webdriver.Chrome()
-    browser.get(link)
-    sleep(5)
-    browser.execute_script("document.body.style.zoom='20%'")
-    sleep(5)
-    resp = browser.page_source
-    return resp
+# def scrap_nofluffjobs(link):
+#    browser = webdriver.Chrome()
+#    browser.get(link)
+#    sleep(5)
+#    browser.execute_script("document.body.style.zoom='20%'")
+#    sleep(5)
+#    resp = browser.page_source
+#    return resp
