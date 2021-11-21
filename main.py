@@ -1,5 +1,12 @@
 from time import sleep
 from selenium import webdriver
+import psycopg2
+import logging
+from datetime import datetime
+
+log_file = 'scrapper_' + str(datetime.utcnow().strftime('%Y_%m_%d')) + '.log'
+logging.basicConfig(filename=log_file, encoding='utf=8', level=logging.DEBUG, format='%(asctime)s | %(levelname)s'''
+                                                                                     ' | %(message)s')
 
 
 # Let's scrap justjoin.it!
@@ -7,14 +14,13 @@ from selenium import webdriver
 def scrap_justjoinit(link):
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    # options.add_argument('window-size=1200x600')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    browser = webdriver.Chrome(chrome_options=options)
+    browser = webdriver.Chrome(options=options)
     browser.get(link)
-    sleep(5)
+    sleep(1)
     browser.execute_script("document.body.style.zoom='20%'")
-    sleep(5)
+    sleep(1)
     resp = browser.page_source
     # I want to check offers only in specific region, so I need to discard offers in other cities
     useful_resp = resp.split("Python</span> in other cities")[0]
@@ -53,6 +59,8 @@ def process_justjoinit_data():
         'https://justjoin.it/remote-poland/python/junior?tab=with-salary')
     average_junior_python_dev_remote_poland_salary = get_average_salary_justjoinit(
         junior_python_dev_jobs_offers_remote_poland)
+    # logging.info("Got average salary of python dev working remotely in Poland: {}."
+    #  .format(average_junior_python_dev_remote_poland_salary))
     if average_junior_python_dev_remote_poland_salary != 0 and average_junior_python_dev_in_warsaw_salary != 0:
         if average_junior_python_dev_remote_poland_salary > average_junior_python_dev_in_warsaw_salary:
             print("It is better to look for offers in category 'Remote Poland'! Average salary is {}zł more."
@@ -75,9 +83,44 @@ def process_justjoinit_data():
         return average_junior_python_dev_remote_poland_salary
 
 
+logging.info("Started job-offers-scrapper.")
 average_junior_python_dev_salary_on_justjoinit = process_justjoinit_data()  # I'm looking for a job in Warsaw or for
+
+
 # a remotely job so I won't check other categories on justjoin.it
 
+
+# Let's store our data in PostgreSQL database
+def connect():
+    conn = None
+    try:
+        logging.debug("Connecting to PGSQL database job-offers.")
+        conn = psycopg2.connect(
+            host="localhost",
+            database="job-offers",
+            user="postgres",
+            password="password"
+        )
+        cur = conn.cursor()
+        logging.info('PostgreSQL database version:')
+        cur.execute('SELECT version()')
+        db_version = cur.fetchone()
+        logging.info(db_version)
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        logging.error(error)
+    finally:
+        if conn is not None:
+            conn.close()
+            logging.info("Database connection closed.")
+
+
+def insert_data():
+    sql = """INSERT INTO salaries.justjoinit(date, warsaw, remote, avg) 
+VALUES ('{}', {},  {}, {});"""
+
+
+connect()
 # Let's scrap other site - nofluffjobs.com/pl! Coming soon...
 
 
