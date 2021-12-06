@@ -3,6 +3,8 @@ from selenium import webdriver
 import psycopg2
 import logging
 from datetime import datetime
+import matplotlib.pyplot as plt
+import numpy as np
 
 log_file = 'scrapper_' + str(datetime.utcnow().strftime('%Y_%m_%d')) + '.log'
 logging.basicConfig(filename=log_file, encoding='utf=8', level=logging.DEBUG, format='%(asctime)s | %(levelname)s'''
@@ -81,6 +83,7 @@ def process_justjoinit_data():
         return average_junior_python_dev_in_warsaw_salary
     elif average_junior_python_dev_in_warsaw_salary == 0 and average_junior_python_dev_remote_poland_salary != 0:
         return average_junior_python_dev_remote_poland_salary
+    insert_data(datetime.today().strftime('%d-%m-%Y'), average_junior_python_dev_in_warsaw_salary, average_junior_python_dev_remote_poland_salary, average_junior_python_dev_salary_on_justjoinit)
 
 
 logging.info("Started job-offers-scrapper.")
@@ -89,18 +92,18 @@ average_junior_python_dev_salary_on_justjoinit = process_justjoinit_data()  # I'
 
 # a remotely job so I won't check other categories on justjoin.it
 
+conn = psycopg2.connect(
+            host="localhost",
+            database="job-offers",
+            user="postgres",
+            password="password"
+        )
 
 # Let's store our data in PostgreSQL database
 def connect():
     conn = None
     try:
         logging.debug("Connecting to PGSQL database job-offers.")
-        conn = psycopg2.connect(
-            host="localhost",
-            database="job-offers",
-            user="postgres",
-            password="password"
-        )
         cur = conn.cursor()
         logging.info('PostgreSQL database version:')
         cur.execute('SELECT version()')
@@ -115,12 +118,30 @@ def connect():
             logging.info("Database connection closed.")
 
 
-def insert_data():
-    sql = """INSERT INTO salaries.justjoinit(date, warsaw, remote, avg) 
-VALUES ('{}', {},  {}, {});"""
+def insert_data(date, warsaw, remote, avg):
+    try:
+        sql = """INSERT INTO salaries.justjoinit(date, warsaw, remote, avg) VALUES (%s,%s,%s,%s);"""
+        data = (date, warsaw, remote, avg)
+        cur = conn.cursor()
+        cur.execute(sql, data)
+        conn.commit()
+        count = cur.rowcount
+        logging.info(count, "Record inserted successfully into justjoinit table.")
+    except (Exception, psycopg2.Error) as error:
+        logging.error(error)
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+            logging.info("Closed PGSQL Connection.")
 
 
 connect()
+
+
+
+
+
 # Let's scrap other site - nofluffjobs.com/pl! Coming soon...
 
 
