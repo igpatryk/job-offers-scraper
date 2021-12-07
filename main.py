@@ -3,21 +3,27 @@ from selenium import webdriver
 import psycopg2
 import logging
 from datetime import datetime
-import matplotlib.pyplot as plt
-import numpy as np
+
+# import matplotlib.pyplot as plt
+# import numpy as np
 
 log_file = 'scrapper_' + str(datetime.utcnow().strftime('%Y_%m_%d')) + '.log'
 logging.basicConfig(filename=log_file, encoding='utf=8', level=logging.DEBUG, format='%(asctime)s | %(levelname)s'''
                                                                                      ' | %(message)s')
+conn = psycopg2.connect(
+    host="localhost",
+    database="job-offers",
+    user="postgres",
+    password="password"
+)
 
-
-# Let's scrap justjoin.it!
 
 def scrap_justjoinit(link):
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("window-size=1920,1080")
     browser = webdriver.Chrome(options=options)
     browser.get(link)
     sleep(1)
@@ -53,6 +59,24 @@ def get_average_salary_justjoinit(offers):
         return 0
 
 
+def insert_data(date, warsaw, remote, avg):
+    try:
+        logging.info("Trying to insert data to PGSQL.")
+        sql = """INSERT INTO salaries.justjoinit(date, warsaw, remote, avg) VALUES (%s,%s,%s,%s);"""
+        data = (date, warsaw, remote, avg)
+        cur = conn.cursor()
+        cur.execute(sql, data)
+        conn.commit()
+        logging.info("Record inserted successfully into justjoinit table.")
+    except (Exception, psycopg2.Error) as error:
+        logging.error(error)
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+            logging.info("Closed PGSQL Connection.")
+
+
 def process_justjoinit_data():
     junior_python_dev_jobs_offers_in_warsaw = scrap_justjoinit(
         'https://justjoin.it/warszawa/python/junior?tab=with-salary')
@@ -65,82 +89,34 @@ def process_justjoinit_data():
     #  .format(average_junior_python_dev_remote_poland_salary))
     if average_junior_python_dev_remote_poland_salary != 0 and average_junior_python_dev_in_warsaw_salary != 0:
         if average_junior_python_dev_remote_poland_salary > average_junior_python_dev_in_warsaw_salary:
-            print("It is better to look for offers in category 'Remote Poland'! Average salary is {}zł more."
-                  .format(average_junior_python_dev_remote_poland_salary - average_junior_python_dev_in_warsaw_salary))
+            logging.info("SCRAP RESULT: It is better to look for offers in category 'Remote Poland'! Average salary "
+                         "is {}zł more. ".format(average_junior_python_dev_remote_poland_salary
+                                                 - average_junior_python_dev_in_warsaw_salary))
         else:
-            print("It is better to look for offers based in Warsaw! Average salary is {}zł more. "
-                  .format(average_junior_python_dev_in_warsaw_salary - average_junior_python_dev_remote_poland_salary))
+            logging.info("SCRAP RESULT: It is better to look for offers based in Warsaw! Average salary is {}zł more. "
+                         .format(average_junior_python_dev_in_warsaw_salary
+                                 - average_junior_python_dev_remote_poland_salary))
     if average_junior_python_dev_in_warsaw_salary != 0:
-        print(
-            "Today the average salary of junior python developer in Warsaw according to offers on justjoin.it is {}zł."
-            .format(average_junior_python_dev_in_warsaw_salary))
+        logging.info("SCRAP RESULT: Today the average salary of junior python developer in Warsaw according to offers "
+                     "on justjoin.it is {}zł.".format(average_junior_python_dev_in_warsaw_salary))
     if average_junior_python_dev_in_warsaw_salary != 0:
-        print("Today the average salary of junior python developer working remotely in Poland according to offers on "
-              "justjoin.it is {}.zł".format(average_junior_python_dev_remote_poland_salary))
+        logging.info("SCRAP RESULT: Today the average salary of junior python developer working remotely in Poland ""ac"
+                     "cording to offers on ""justjoin.it is {}.zł"
+                     .format(average_junior_python_dev_remote_poland_salary))
     if average_junior_python_dev_in_warsaw_salary != 0 and average_junior_python_dev_remote_poland_salary != 0:
-        return (average_junior_python_dev_in_warsaw_salary + average_junior_python_dev_remote_poland_salary) / 2
+        average_junior_python_dev_salary_on_justjoinit = (average_junior_python_dev_in_warsaw_salary +
+                                                          average_junior_python_dev_remote_poland_salary) / 2
     elif average_junior_python_dev_in_warsaw_salary != 0 and average_junior_python_dev_remote_poland_salary == 0:
-        return average_junior_python_dev_in_warsaw_salary
+        average_junior_python_dev_salary_on_justjoinit = average_junior_python_dev_in_warsaw_salary
     elif average_junior_python_dev_in_warsaw_salary == 0 and average_junior_python_dev_remote_poland_salary != 0:
-        return average_junior_python_dev_remote_poland_salary
-    insert_data(datetime.today().strftime('%d-%m-%Y'), average_junior_python_dev_in_warsaw_salary, average_junior_python_dev_remote_poland_salary, average_junior_python_dev_salary_on_justjoinit)
+        average_junior_python_dev_salary_on_justjoinit = average_junior_python_dev_remote_poland_salary
+    insert_data(datetime.today().strftime('%d-%m-%Y'), average_junior_python_dev_in_warsaw_salary,
+                average_junior_python_dev_remote_poland_salary, average_junior_python_dev_salary_on_justjoinit)
+    return average_junior_python_dev_salary_on_justjoinit
 
 
 logging.info("Started job-offers-scrapper.")
 average_junior_python_dev_salary_on_justjoinit = process_justjoinit_data()  # I'm looking for a job in Warsaw or for
-
-
-# a remotely job so I won't check other categories on justjoin.it
-
-conn = psycopg2.connect(
-            host="localhost",
-            database="job-offers",
-            user="postgres",
-            password="password"
-        )
-
-# Let's store our data in PostgreSQL database
-def connect():
-    conn = None
-    try:
-        logging.debug("Connecting to PGSQL database job-offers.")
-        cur = conn.cursor()
-        logging.info('PostgreSQL database version:')
-        cur.execute('SELECT version()')
-        db_version = cur.fetchone()
-        logging.info(db_version)
-        cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        logging.error(error)
-    finally:
-        if conn is not None:
-            conn.close()
-            logging.info("Database connection closed.")
-
-
-def insert_data(date, warsaw, remote, avg):
-    try:
-        sql = """INSERT INTO salaries.justjoinit(date, warsaw, remote, avg) VALUES (%s,%s,%s,%s);"""
-        data = (date, warsaw, remote, avg)
-        cur = conn.cursor()
-        cur.execute(sql, data)
-        conn.commit()
-        count = cur.rowcount
-        logging.info(count, "Record inserted successfully into justjoinit table.")
-    except (Exception, psycopg2.Error) as error:
-        logging.error(error)
-    finally:
-        if conn:
-            cur.close()
-            conn.close()
-            logging.info("Closed PGSQL Connection.")
-
-
-connect()
-
-
-
-
 
 # Let's scrap other site - nofluffjobs.com/pl! Coming soon...
 
