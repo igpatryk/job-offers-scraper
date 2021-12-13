@@ -5,15 +5,17 @@ import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+from ftplib import FTP
+import os
 
 log_file = 'scrapper_' + str(datetime.utcnow().strftime('%Y_%m_%d')) + '.log'
 logging.basicConfig(filename=log_file, encoding='utf=8', level=logging.DEBUG, format='%(asctime)s | %(levelname)s'''
                                                                                      ' | %(message)s')
 conn = psycopg2.connect(
-    host="localhost",
-    database="job-offers",
-    user="postgres",
-    password="password"
+    host=os.environ.get('pg_host'),
+    database=os.environ.get('pg_database'),
+    user=os.environ.get('pg_user'),
+    password=os.environ.get('pg_password')
 )
 
 
@@ -108,6 +110,15 @@ def process_justjoinit_data():
                 average_junior_python_dev_remote_poland_salary, average_junior_python_dev_salary_on_justjoinit)
 
 
+def upload_to_ftp():
+    ftp = FTP(os.environ.get('ftp_address'))
+    ftp.login(user=os.environ.get('ftp_user'), passwd=os.environ.get('ftp_password'))
+    ftp.encoding = "utf-8"
+    with open('graph.png', 'rb') as file:
+        ftp.storbinary('STOR graph.png', file)
+    ftp.quit()
+
+
 def make_graph(dates, warsaw, remote, avg):
     x = np.arange(len(dates))
     width = 0.2
@@ -127,12 +138,13 @@ def make_graph(dates, warsaw, remote, avg):
     ax.bar_label(remote, padding=3)
     fig.tight_layout()
     plt.savefig('graph.png')
+    upload_to_ftp()
 
 
 def select_data():
     cur = None
     try:
-        query = "SELECT DISTINCT * from salaries.justjoinit where date >= now() - interval '7' day"
+        query = "SELECT DISTINCT * from salaries.justjoinit where date >= now() - interval '7' day order by date ASC"
         cur = conn.cursor()
         cur.execute(query)
         rows = cur.fetchall()
