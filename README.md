@@ -20,6 +20,7 @@ The graph can be seen on the site https://www.patrykignaczak.pl/salaries-scrappe
 ## Report
 Report is send by e-mail using GMail SMTP server. It looks like this:
 <img src="https://user-images.githubusercontent.com/75589318/146238850-cb15534f-4c2b-4e5c-bdca-3f951d35aad8.png" alt="drawing" width="50%" height="50%"/>
+
 (Again, this one was made while testing the script so it doesn't contain data for the 7 days)
 ## How is it run
 I have build a pipeline on https://buddy.works/ and salaries scrapper is run automatically every day at 6 a.m. (UTC+1).
