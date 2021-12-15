@@ -72,18 +72,18 @@ def process_justjoinit_data():
         junior_python_dev_jobs_offers_remote_poland), 2)
     if average_junior_python_dev_remote_poland_salary != 0 and average_junior_python_dev_in_warsaw_salary != 0:
         if average_junior_python_dev_remote_poland_salary > average_junior_python_dev_in_warsaw_salary:
-            logging.info("SCRAP RESULT: It is better to look for offers in category 'Remote Poland'! Average salary "
+            logging.debug("SCRAP RESULT: It is better to look for offers in category 'Remote Poland'! Average salary "
                          "is {}zł more. ".format(average_junior_python_dev_remote_poland_salary
                                                  - average_junior_python_dev_in_warsaw_salary))
         else:
-            logging.info("SCRAP RESULT: It is better to look for offers based in Warsaw! Average salary is {}zł more. "
+            logging.debug("SCRAP RESULT: It is better to look for offers based in Warsaw! Average salary is {}zł more. "
                          .format(average_junior_python_dev_in_warsaw_salary
                                  - average_junior_python_dev_remote_poland_salary))
     if average_junior_python_dev_in_warsaw_salary != 0:
-        logging.info("SCRAP RESULT: Today the average salary of junior python developer in Warsaw according to offers "
+        logging.debug("SCRAP RESULT: Today the average salary of junior python developer in Warsaw according to offers "
                      "on justjoin.it is {}zł.".format(average_junior_python_dev_in_warsaw_salary))
     if average_junior_python_dev_in_warsaw_salary != 0:
-        logging.info("SCRAP RESULT: Today the average salary of junior python developer working remotely in Poland ""ac"
+        logging.debug("SCRAP RESULT: Today the average salary of junior python developer working remotely in Poland ""ac"
                      "cording to offers on ""justjoin.it is {}.zł"
                      .format(average_junior_python_dev_remote_poland_salary))
     if average_junior_python_dev_in_warsaw_salary != 0 and average_junior_python_dev_remote_poland_salary != 0:
@@ -155,7 +155,7 @@ def make_graph(dates, warsaw, remote, avg):
     width = 0.2
     fig, ax = plt.subplots()
     ax.set_facecolor("white")
-    ax.set_ylabel('Salaries')
+    ax.set_ylabel('PLN')
     ax.set_title('Junior Python Dev Salary')
     ax.set_xticks(x, dates)
     ax.set_axisbelow(True)
@@ -167,13 +167,14 @@ def make_graph(dates, warsaw, remote, avg):
     ax.bar_label(warsaw, padding=3)
     ax.bar_label(avg, padding=3)
     ax.bar_label(remote, padding=3)
-    plt.gcf().set_size_inches(20, 10)
+    plt.gcf().set_size_inches(18, 9)
     plt.savefig('graph.png')
 
 
 def upload_to_ftp():
     ftp = FTP(os.environ.get('ftp_address'))
     ftp.login(user=os.environ.get('ftp_user'), passwd=os.environ.get('ftp_password'))
+    ftp.cwd('/patryk/wp-content/uploads/2021/12')
     ftp.encoding = "utf-8"
     with open('graph.png', 'rb') as file:
         ftp.storbinary('STOR graph.png', file)
