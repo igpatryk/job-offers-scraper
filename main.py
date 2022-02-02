@@ -61,43 +61,29 @@ def get_average_salary_justjoinit(offers):
 
 
 def process_justjoinit_data():
-    average_junior_python_dev_salary_on_justjoinit = None
-    junior_python_dev_jobs_offers_in_warsaw = scrap_justjoinit(
-        'https://justjoin.it/warszawa/python/junior?tab=with-salary')
-    average_junior_python_dev_in_warsaw_salary = round(get_average_salary_justjoinit(
-        junior_python_dev_jobs_offers_in_warsaw), 2)
-    junior_python_dev_jobs_offers_remote_poland = scrap_justjoinit(
-        'https://justjoin.it/remote-poland/python/junior?tab=with-salary')
-    average_junior_python_dev_remote_poland_salary = round(get_average_salary_justjoinit(
-        junior_python_dev_jobs_offers_remote_poland), 2)
-    if average_junior_python_dev_remote_poland_salary != 0 and average_junior_python_dev_in_warsaw_salary != 0:
-        if average_junior_python_dev_remote_poland_salary > average_junior_python_dev_in_warsaw_salary:
-            logging.debug("SCRAP RESULT: It is better to look for offers in category 'Remote Poland'! Average salary "
-                         "is {}zł more. ".format(average_junior_python_dev_remote_poland_salary
-                                                 - average_junior_python_dev_in_warsaw_salary))
-        else:
-            logging.debug("SCRAP RESULT: It is better to look for offers based in Warsaw! Average salary is {}zł more. "
-                         .format(average_junior_python_dev_in_warsaw_salary
-                                 - average_junior_python_dev_remote_poland_salary))
-    if average_junior_python_dev_in_warsaw_salary != 0:
-        logging.debug("SCRAP RESULT: Today the average salary of junior python developer in Warsaw according to offers "
-                     "on justjoin.it is {}zł.".format(average_junior_python_dev_in_warsaw_salary))
-    if average_junior_python_dev_in_warsaw_salary != 0:
-        logging.debug("SCRAP RESULT: Today the average salary of junior python developer working remotely in Poland ""ac"
-                     "cording to offers on ""justjoin.it is {}.zł"
-                     .format(average_junior_python_dev_remote_poland_salary))
-    if average_junior_python_dev_in_warsaw_salary != 0 and average_junior_python_dev_remote_poland_salary != 0:
-        average_junior_python_dev_salary_on_justjoinit = round(((average_junior_python_dev_in_warsaw_salary +
-                                                          average_junior_python_dev_remote_poland_salary) / 2), 2)
-    elif average_junior_python_dev_in_warsaw_salary != 0 and average_junior_python_dev_remote_poland_salary == 0:
-        average_junior_python_dev_salary_on_justjoinit = average_junior_python_dev_in_warsaw_salary
-    elif average_junior_python_dev_in_warsaw_salary == 0 and average_junior_python_dev_remote_poland_salary != 0:
-        average_junior_python_dev_salary_on_justjoinit = average_junior_python_dev_remote_poland_salary
-    return average_junior_python_dev_in_warsaw_salary, average_junior_python_dev_remote_poland_salary, \
-        average_junior_python_dev_salary_on_justjoinit
+    avg_justjoinit = None
+    warsaw_offers = scrap_justjoinit('https://justjoin.it/warszawa/python/junior?tab=with-salary')
+    avg_warsaw_salary = round(get_average_salary_justjoinit(warsaw_offers), 2)
+    remote_offers = scrap_justjoinit('https://justjoin.it/remote-poland/python/junior?tab=with-salary')
+    avg_remote_salary = round(get_average_salary_justjoinit(remote_offers), 2)
+    if avg_warsaw_salary != 0:
+        logging.debug(
+            "SCRAP RESULT: Today the average salary of junior python developer in Warsaw according to offers "
+            "on justjoin.it is {}zł.".format(avg_warsaw_salary))
+    if avg_warsaw_salary != 0:
+        logging.debug(
+            "SCRAP RESULT: Today the average salary of junior python developer working remotely in Poland ""ac"
+            "cording to offers on ""justjoin.it is {}.zł".format(avg_remote_salary))
+    if avg_warsaw_salary != 0 and avg_remote_salary != 0:
+        avg_justjoinit = round(((avg_warsaw_salary + avg_remote_salary) / 2), 2)
+    elif avg_warsaw_salary != 0 and avg_remote_salary == 0:
+        avg_justjoinit = avg_warsaw_salary
+    elif avg_warsaw_salary == 0 and avg_remote_salary != 0:
+        avg_justjoinit = avg_remote_salary
+    return avg_warsaw_salary, avg_remote_salary, avg_justjoinit
 
 
-def insert_data(date, warsaw, remote, avg):
+def insert_data(date_to_insert, warsaw_to_insert, remote_to_insert, avg_to_insert):
     conn = psycopg2.connect(
         host=os.environ.get('pg_host'),
         database=os.environ.get('pg_database'),
@@ -107,7 +93,7 @@ def insert_data(date, warsaw, remote, avg):
     try:
         logging.info("Trying to insert data to PGSQL.")
         sql = """INSERT INTO salaries.justjoinit(date, warsaw, remote, avg) VALUES (%s,%s,%s,%s);"""
-        data = (date, warsaw, remote, avg)
+        data = (date_to_insert, warsaw_to_insert, remote_to_insert, avg_to_insert)
         cur = conn.cursor()
         cur.execute(sql, data)
         conn.commit()
@@ -129,18 +115,18 @@ def select_data(sql):
         cur = conn.cursor()
         cur.execute(query)
         rows = cur.fetchall()
-        dates = []
-        warsaw = []
-        remote = []
-        avg = []
+        db_dates = []
+        db_warsaw = []
+        db_remote = []
+        db_avg = []
         for row in rows:
-            dates.append(row[0])
-            warsaw.append(row[1])
-            remote.append(row[2])
-            avg.append(row[3])
+            db_dates.append(row[0])
+            db_warsaw.append(row[1])
+            db_remote.append(row[2])
+            db_avg.append(row[3])
         cur.close()
         conn.close()
-        return dates, warsaw, remote, avg
+        return db_dates, db_warsaw, db_remote, db_avg
     except (Exception, psycopg2.Error) as error:
         logging.error(error)
     finally:
@@ -150,23 +136,23 @@ def select_data(sql):
             logging.info("Closed PGSQL Connection.")
 
 
-def make_graph(dates, warsaw, remote, avg):
-    x = np.arange(len(dates))
+def make_graph(dates_for_graph, warsaw_for_graph, remote_for_graph, avg_for_graph):
+    x = np.arange(len(dates_for_graph))
     width = 0.2
     fig, ax = plt.subplots()
     ax.set_facecolor("white")
     ax.set_ylabel('PLN')
     ax.set_title('Junior Python Dev Salary')
-    ax.set_xticks(x, dates)
+    ax.set_xticks(x, dates_for_graph)
     ax.set_axisbelow(True)
     ax.yaxis.grid(True, color="#808080", linestyle="dashed")
-    warsaw = ax.bar(x - width, warsaw, width, color='#F5CABF', label='Warsaw')
-    avg = ax.bar(x, avg, width, color="#C6F58E", label='Average')
-    remote = ax.bar(x + width, remote, width, color="#A6B9F5", label='Remote')
+    warsaw_bar = ax.bar(x - width, warsaw_for_graph, width, color='#F5CABF', label='Warsaw')
+    avg_bar = ax.bar(x, avg_for_graph, width, color="#C6F58E", label='Average')
+    remote_bar = ax.bar(x + width, remote_for_graph, width, color="#A6B9F5", label='Remote')
     ax.legend()
-    ax.bar_label(warsaw, padding=3)
-    ax.bar_label(avg, padding=3)
-    ax.bar_label(remote, padding=3)
+    ax.bar_label(warsaw_bar, padding=3)
+    ax.bar_label(avg_bar, padding=3)
+    ax.bar_label(remote_bar, padding=3)
     plt.gcf().set_size_inches(18, 9)
     plt.savefig('graph.png')
 
@@ -181,30 +167,30 @@ def upload_to_ftp():
     ftp.quit()
 
 
-def create_report(remote, warsaw, avg, monthly):
-    global smtp_mail
-    smtp_mail = os.environ.get('smtp_mail')
-    global receiver_mail
-    receiver_mail = os.environ.get('my_mail')
+def create_report(report_remote, report_warsaw, report_avg, monthly):
+    mail_from = os.environ.get('smtp_mail')
+    mail_to = os.environ.get('my_mail')
     daily_subject = "Daily salaries-scrapper's report"
     daily_body = "Hi! It's me, salaries-scrapper.\n" \
-           "Today:\n" \
-           "- the average salary of Junior Python Developer who works in Warsaw is {}zł.\n" \
-           "- the average salary of Junior Python Developer who works remotely is {}zł.\n" \
-           "- the average of these salaries is {}zł.\n" \
-           "This data was scrapped from justjoin.it website.\n" \
-           "There is a graph for the last 7 days in the attachment, take a look!".format(warsaw, remote, avg)
+                 "Today:\n" \
+                 "- the average salary of Junior Python Developer who works in Warsaw is {}zł.\n" \
+                 "- the average salary of Junior Python Developer who works remotely is {}zł.\n" \
+                 "- the average of these salaries is {}zł.\n" \
+                 "This data was scrapped from justjoin.it website.\n" \
+                 "There is a graph for the last 7 days in the attachment, take a look!"\
+        .format(report_warsaw, report_remote, report_avg)
     monthly_subject = "Monthly salaries-scrapper's report"
     monthly_body = "Hi! It's me, salaries-scrapper.\n" \
-           "In the previous month:\n" \
-           "- the average salary of Junior Python Developer who works in Warsaw was {}zł.\n" \
-           "- the average salary of Junior Python Developer who works remotely was {}zł.\n" \
-           "- the average of these salaries was {}zł.\n" \
-           "This data was scrapped from justjoin.it website.\n" \
-           "There is a graph for the last one month in the attachment, take a look!".format(warsaw, remote, avg)
+                   "In the previous month:\n" \
+                   "- the average salary of Junior Python Developer who works in Warsaw was {}zł.\n" \
+                   "- the average salary of Junior Python Developer who works remotely was {}zł.\n" \
+                   "- the average of these salaries was {}zł.\n" \
+                   "This data was scrapped from justjoin.it website.\n" \
+                   "There is a graph for the last one month in the attachment, take a look!"\
+        .format(report_warsaw, report_remote, report_avg)
     message = MIMEMultipart()
-    message["From"] = smtp_mail
-    message["To"] = receiver_mail
+    message["From"] = mail_from
+    message["To"] = mail_to
     if monthly == 0:
         message["Subject"] = daily_subject
         message.attach(MIMEText(daily_body, "plain"))
@@ -226,6 +212,8 @@ def create_report(remote, warsaw, avg, monthly):
 
 def send_mail(msg):
     try:
+        receiver_mail = os.environ.get('my_mail')
+        smtp_mail = os.environ.get('smtp_mail')
         smtp_server = 'smtp.gmail.com'
         smtp_port = 587
         smtp_password = os.environ.get('smtp_password')
@@ -240,13 +228,13 @@ def send_mail(msg):
     else:
         logging.info("Successfully send an email.")
 
+
 logging.info("Started job-offers-scrapper.")
 # get salaries
-average_junior_python_dev_in_warsaw_salary, average_junior_python_dev_remote_poland_salary, \
-average_junior_python_dev_salary_on_justjoinit = process_justjoinit_data()
+avg_warsaw_jjit_salary, avg_remotepl_jjit_salary, avg_overall_jjit_salary = process_justjoinit_data()
 # insert salaries into pgsql database with today's date
-insert_data(datetime.today().strftime('%Y-%m-%d'), average_junior_python_dev_in_warsaw_salary,
-            average_junior_python_dev_remote_poland_salary, average_junior_python_dev_salary_on_justjoinit)
+insert_data(datetime.today().strftime('%Y-%m-%d'), avg_warsaw_jjit_salary,
+            avg_remotepl_jjit_salary, avg_overall_jjit_salary)
 # select data from pgsql database for latest 7 days
 select = "SELECT DISTINCT * from salaries.justjoinit where date >= now() - interval '7' day order by date ASC"
 dates, warsaw, remote, avg = select_data(select)
@@ -255,17 +243,17 @@ make_graph(dates, warsaw, remote, avg)
 # upload file to the ftp
 upload_to_ftp()
 # create daily report
-message = create_report(average_junior_python_dev_remote_poland_salary, average_junior_python_dev_in_warsaw_salary, average_junior_python_dev_salary_on_justjoinit, 0)
+mail = create_report(avg_remotepl_jjit_salary, avg_warsaw_jjit_salary, avg_overall_jjit_salary, 0)
 # send daily report
-send_mail(message)
+send_mail(mail)
 # monthly report
 if datetime.today().strftime('%d') == '01':
     select = "SELECT DISTINCT * from salaries.justjoinit where date >= now() - interval '1 months' order by date ASC"
     dates, warsaw, remote, avg = select_data(select)
     make_graph(dates, warsaw, remote, avg)
-    monthly_remote_avg = sum(remote) / len(remote)
-    monthly_warsaw_avg = sum(warsaw) / len(warsaw)
-    monthly_avg_avg = sum(avg) / len(avg)
-    message = create_report(monthly_remote_avg, monthly_warsaw_avg, monthly_avg_avg, 1)
-    send_mail(message)
+    monthly_remote_avg = round((sum(remote) / len(remote)), 2)
+    monthly_warsaw_avg = round((sum(warsaw) / len(warsaw)), 2)
+    monthly_avg = round((sum(avg) / len(avg)), 2)
+    mail = create_report(monthly_remote_avg, monthly_warsaw_avg, monthly_avg, 1)
+    send_mail(mail)
 logging.info("Stopped job-offers-scrapper.")
