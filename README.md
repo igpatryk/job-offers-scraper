@@ -16,11 +16,8 @@ I have build a pipeline on https://buddy.works/ and salaries scrapper is run aut
 Currently, salaries scrapper support only https://justjoin.it/ website. I think that it is the best website to find a job as a Junior Python Developer.
 I am planning to add https://nofluffjobs.com/pl support but it has to wait a bit.
 ## Graph
-The graph can be seen on the site https://www.patrykignaczak.pl/salaries-scrapper/. It looks like this:
-![graph](https://user-images.githubusercontent.com/75589318/146238433-71553254-a98d-4aff-bcc2-bd0c61b81136.png)
-(This one was made while testing the script so it doesn't contain data for the 7 days)
+The graph can be seen on the site https://www.patrykignaczak.pl/salaries-scrapper/. It looks like this:  
+![graph](https://user-images.githubusercontent.com/75589318/152081689-459869ae-d8a2-4ac3-b981-f3d510c2362c.png)
 ## Report
-Report is send by e-mail using GMail SMTP server. It looks like this:
-<img src="https://user-images.githubusercontent.com/75589318/146238850-cb15534f-4c2b-4e5c-bdca-3f951d35aad8.png" alt="drawing" width="50%" height="50%"/>
-
-(Again, this one was made while testing the script so it doesn't contain data for the 7 days)
+Report is send by e-mail using GMail SMTP server. It looks like this:  
+<img src="https://user-images.githubusercontent.com/75589318/152081892-5170f6ba-405d-4ffe-bf6e-f044f2e74949.png" alt="drawing" width="50%" height="50%"/>
