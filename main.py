@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+import ftplib
 from ftplib import FTP
 import os
 import smtplib
@@ -14,8 +15,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 log_file = 'scrapper_' + str(datetime.utcnow().strftime('%Y_%m_%d')) + '.log'
-logging.basicConfig(filename=log_file, encoding='utf=8', level=logging.DEBUG, format='%(asctime)s | %(levelname)s'''
-                                                                                     ' | %(message)s')
+log_format = '%(asctime)s | %(levelname)s | %(message)s'
+logging.basicConfig(filename=log_file, encoding='utf=8', level=logging.DEBUG, format=log_format)
 logging.getLogger('matplotlib.font_manager').disabled = True
 
 
@@ -90,16 +91,24 @@ def insert_data(date_to_insert, warsaw_to_insert, remote_to_insert, avg_to_inser
         user=os.environ.get('pg_user'),
         password=os.environ.get('pg_password')
     )
+    cur = None
     try:
-        logging.info("Trying to insert data to PGSQL.")
+        logging.debug("Trying to insert data to DB: {}, {}, {}, {}"
+                      .format(date_to_insert, warsaw_to_insert, remote_to_insert, avg_to_insert))
         sql = """INSERT INTO salaries.justjoinit(date, warsaw, remote, avg) VALUES (%s,%s,%s,%s);"""
         data = (date_to_insert, warsaw_to_insert, remote_to_insert, avg_to_insert)
         cur = conn.cursor()
         cur.execute(sql, data)
         conn.commit()
-        logging.info("Record inserted successfully into justjoinit table.")
     except (Exception, psycopg2.Error) as error:
         logging.error(error)
+    else:
+        logging.info("Record inserted successfully into justjoinit table.")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+            logging.info("Closed PGSQL Connection.")
 
 
 def select_data(sql):
@@ -110,15 +119,16 @@ def select_data(sql):
         password=os.environ.get('pg_password')
     )
     cur = None
+    db_dates = []
+    db_warsaw = []
+    db_remote = []
+    db_avg = []
     try:
+        logging.debug("Trying to fetch data from DB with SQL: {}".format(sql))
         query = sql
         cur = conn.cursor()
         cur.execute(query)
         rows = cur.fetchall()
-        db_dates = []
-        db_warsaw = []
-        db_remote = []
-        db_avg = []
         for row in rows:
             db_dates.append(row[0])
             db_warsaw.append(row[1])
@@ -126,14 +136,16 @@ def select_data(sql):
             db_avg.append(row[3])
         cur.close()
         conn.close()
-        return db_dates, db_warsaw, db_remote, db_avg
     except (Exception, psycopg2.Error) as error:
         logging.error(error)
+    else:
+        logging.info("Data fetched from DB: {}, {}, {}, {}.".format(db_dates, db_warsaw, db_remote, db_avg))
     finally:
         if conn:
             cur.close()
             conn.close()
             logging.info("Closed PGSQL Connection.")
+    return db_dates, db_warsaw, db_remote, db_avg
 
 
 def make_graph(dates_for_graph, warsaw_for_graph, remote_for_graph, avg_for_graph):
@@ -155,16 +167,23 @@ def make_graph(dates_for_graph, warsaw_for_graph, remote_for_graph, avg_for_grap
     ax.bar_label(remote_bar, padding=3)
     plt.gcf().set_size_inches(18, 9)
     plt.savefig('graph.png')
+    logging.info("Plot created and saved to graph.png")
 
 
 def upload_to_ftp():
-    ftp = FTP(os.environ.get('ftp_address'))
-    ftp.login(user=os.environ.get('ftp_user'), passwd=os.environ.get('ftp_password'))
-    ftp.cwd('/patryk/wp-content/uploads/2021/12')
-    ftp.encoding = "utf-8"
-    with open('graph.png', 'rb') as file:
-        ftp.storbinary('STOR graph.png', file)
-    ftp.quit()
+    try:
+        logging.info("Trying to upload file to FTP server.")
+        ftp = FTP(os.environ.get('ftp_address'))
+        ftp.login(user=os.environ.get('ftp_user'), passwd=os.environ.get('ftp_password'))
+        ftp.cwd('/patryk/wp-content/uploads/2021/12')
+        ftp.encoding = "utf-8"
+        with open('graph.png', 'rb') as file:
+            ftp.storbinary('STOR graph.png', file)
+        ftp.quit()
+    except ftplib.all_errors as e:
+        logging.error("FTP ERROR: {}".format(e))
+    else:
+        logging.info("File uploaded successfully to FTP server.")
 
 
 def create_report(report_remote, report_warsaw, report_avg, monthly):
@@ -229,7 +248,7 @@ def send_mail(msg):
         logging.info("Successfully send an email.")
 
 
-logging.info("Started job-offers-scrapper.")
+logging.info("Started salaries-scrapper.")
 # get salaries
 avg_warsaw_jjit_salary, avg_remotepl_jjit_salary, avg_overall_jjit_salary = process_justjoinit_data()
 # insert salaries into pgsql database with today's date
@@ -256,4 +275,4 @@ if datetime.today().strftime('%d') == '01':
     monthly_avg = round((sum(avg) / len(avg)), 2)
     mail = create_report(monthly_remote_avg, monthly_warsaw_avg, monthly_avg, 1)
     send_mail(mail)
-logging.info("Stopped job-offers-scrapper.")
+logging.info("Stopped salaries-scrapper.")
