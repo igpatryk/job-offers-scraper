@@ -273,6 +273,6 @@ if datetime.today().strftime('%d') == '01':
     monthly_remote_avg = round((sum(remote) / len(remote)), 2)
     monthly_warsaw_avg = round((sum(warsaw) / len(warsaw)), 2)
     monthly_avg = round((sum(avg) / len(avg)), 2)
-    mail = create_report(round(monthly_remote_avg, 2), round(monthly_warsaw_avg, 2), round(monthly_avg, 2), 1)
+    mail = create_report(monthly_remote_avg, monthly_warsaw_avg, monthly_avg, 1)
     send_mail(mail)
 logging.info("Stopped salaries-scrapper.")
