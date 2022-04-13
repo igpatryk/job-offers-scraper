@@ -45,10 +45,11 @@ def get_average_salary_justjoinit(offers):
         for element in offers_divided_by_pln:
             if element[-1] == "k":
                 salary = element[-16:].split(">", 1)[1]
-                salary2 = salary.replace("k", "")
-                salary = salary2.replace(" ", "")
-                salary2 = salary.replace("-", " ")
-                salary = salary2.split(" ")
+                salary = salary\
+                    .replace("k", "")\
+                    .replace(" ", "")\
+                    .replace("-", " ")\
+                    .split(" ")
                 sum_of_actual_salaries = 0
                 for i in range(0, len(salary)):
                     sum_of_actual_salaries = sum_of_actual_salaries + float(salary[i])
