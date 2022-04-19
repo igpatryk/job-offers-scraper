@@ -14,11 +14,6 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-log_file = 'scrapper_' + str(datetime.utcnow().strftime('%Y_%m_%d')) + '.log'
-log_format = '%(asctime)s | %(levelname)s | %(message)s'
-logging.basicConfig(filename=log_file, encoding='utf=8', level=logging.DEBUG, format=log_format)
-logging.getLogger('matplotlib.font_manager').disabled = True
-
 
 def scrap_justjoinit(link):
     options = webdriver.ChromeOptions()
@@ -250,6 +245,10 @@ def send_mail(msg):
 
 
 def main():
+    log_file = 'scrapper_' + str(datetime.utcnow().strftime('%Y_%m_%d')) + '.log'
+    log_format = '%(asctime)s | %(levelname)s | %(message)s'
+    logging.basicConfig(filename=log_file, encoding='utf=8', level=logging.DEBUG, format=log_format)
+    logging.getLogger('matplotlib.font_manager').disabled = True
     logging.info("Started salaries-scrapper.")
     # get salaries
     avg_warsaw_jjit_salary, avg_remotepl_jjit_salary, avg_overall_jjit_salary = process_justjoinit_data()
