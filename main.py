@@ -249,31 +249,36 @@ def send_mail(msg):
         logging.info("Successfully send an email.")
 
 
-logging.info("Started salaries-scrapper.")
-# get salaries
-avg_warsaw_jjit_salary, avg_remotepl_jjit_salary, avg_overall_jjit_salary = process_justjoinit_data()
-# insert salaries into pgsql database with today's date
-insert_data(datetime.today().strftime('%Y-%m-%d'), avg_warsaw_jjit_salary,
-            avg_remotepl_jjit_salary, avg_overall_jjit_salary)
-# select data from pgsql database for latest 7 days
-select = "SELECT DISTINCT * from salaries.justjoinit where date >= now() - interval '7' day order by date ASC"
-dates, warsaw, remote, avg = select_data(select)
-# make a graph
-make_graph(dates, warsaw, remote, avg)
-# upload file to the ftp
-upload_to_ftp()
-# create daily report
-mail = create_report(avg_remotepl_jjit_salary, avg_warsaw_jjit_salary, avg_overall_jjit_salary, 0)
-# send daily report
-send_mail(mail)
-# monthly report
-if datetime.today().strftime('%d') == '01':
-    select = "SELECT DISTINCT * from salaries.justjoinit where date >= now() - interval '1 months' order by date ASC"
+def main():
+    logging.info("Started salaries-scrapper.")
+    # get salaries
+    avg_warsaw_jjit_salary, avg_remotepl_jjit_salary, avg_overall_jjit_salary = process_justjoinit_data()
+    # insert salaries into pgsql database with today's date
+    insert_data(datetime.today().strftime('%Y-%m-%d'), avg_warsaw_jjit_salary,
+                avg_remotepl_jjit_salary, avg_overall_jjit_salary)
+    # select data from pgsql database for latest 7 days
+    select = "SELECT DISTINCT * from salaries.justjoinit where date >= now()-interval '7' day order by date ASC"
     dates, warsaw, remote, avg = select_data(select)
+    # make a graph
     make_graph(dates, warsaw, remote, avg)
-    monthly_remote_avg = round((sum(remote) / len(remote)), 2)
-    monthly_warsaw_avg = round((sum(warsaw) / len(warsaw)), 2)
-    monthly_avg = round((sum(avg) / len(avg)), 2)
-    mail = create_report(monthly_remote_avg, monthly_warsaw_avg, monthly_avg, 1)
+    # upload file to the ftp
+    upload_to_ftp()
+    # create daily report
+    mail = create_report(avg_remotepl_jjit_salary, avg_warsaw_jjit_salary, avg_overall_jjit_salary, 0)
+    # send daily report
     send_mail(mail)
-logging.info("Stopped salaries-scrapper.")
+    # monthly report
+    if datetime.today().strftime('%d') == '01':
+        select = "SELECT DISTINCT * from salaries.justjoinit where date >= now()-interval '1 months' order by date ASC"
+        dates, warsaw, remote, avg = select_data(select)
+        make_graph(dates, warsaw, remote, avg)
+        monthly_remote_avg = round((sum(remote) / len(remote)), 2)
+        monthly_warsaw_avg = round((sum(warsaw) / len(warsaw)), 2)
+        monthly_avg = round((sum(avg) / len(avg)), 2)
+        mail = create_report(monthly_remote_avg, monthly_warsaw_avg, monthly_avg, 1)
+        send_mail(mail)
+    logging.info("Stopped salaries-scrapper.")
+
+
+if __name__ == '__main':
+    main()
