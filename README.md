@@ -1,5 +1,6 @@
+# Project currently suspended.
 # Salaries scrapper
-Salaries scrapper is a tool that scrap Junior Python Developer salaries from job offers on polish websites and then do some magic. 🪄
+Salaries scrapper is a tool that scrap Junior Python Developer salaries from job offers on Polish websites and then do some magic. 🪄
 ## What does it do
 1. Scrap salaries from polish websites.
 2. Calculate the average salary for job offers in Warsaw and for remote job offers.
